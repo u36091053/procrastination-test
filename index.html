@@ -40,6 +40,9 @@ h1 .hl{background:linear-gradient(transparent 60%,var(--accent-2) 60%);padding:0
 .btn:disabled{opacity:.4;cursor:not-allowed}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .meta{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:var(--muted);margin-bottom:8px}
+.pill{background:var(--accent-soft);color:var(--ink);border-radius:99px;padding:3px 10px;font-size:13px}
+.pill.bump{animation:bump .4s}
+@keyframes bump{40%{transform:scale(1.12)}}
 .progress{height:10px;background:var(--line);border-radius:99px;overflow:hidden;margin-bottom:22px}
 .progress i{display:block;height:100%;background:linear-gradient(90deg,var(--accent-2),var(--accent));border-radius:99px;transition:width .35s}
 .q{font-size:clamp(20px,4.6vw,24px);font-weight:900;margin:0 0 6px;line-height:1.35}
@@ -85,6 +88,18 @@ ul.tips li{margin:4px 0}
 .toast.show{transform:translateX(-50%) translateY(0)}
 .confetti{position:fixed;top:-20px;font-size:22px;pointer-events:none;animation:fall linear forwards;z-index:8}
 @keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
+.second{display:flex;gap:12px;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-top:10px}
+.second .e{font-size:30px}
+.gallery{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+@media (max-width:560px){.gallery{grid-template-columns:repeat(3,1fr)}}
+.gcard{font:inherit;color:var(--ink);background:var(--bg);border:2px solid var(--line);border-radius:14px;padding:10px 4px;cursor:pointer;text-align:center;transition:transform .12s,border-color .12s}
+.gcard:hover{transform:translateY(-2px);border-color:var(--accent)}
+.gcard.on{border-color:var(--accent);background:var(--accent-soft)}
+.gcard .e{font-size:28px;display:block}
+.gcard .n{font-size:12px;font-weight:700;line-height:1.3;display:block;margin-top:2px}
+.gcard .me{display:block;font-size:10px;color:var(--accent);font-weight:900;min-height:14px}
+.gdetail{margin-top:10px;background:var(--bg);border-radius:14px;padding:12px 14px;font-size:14px}
+.gdetail b{font-size:15px}
 footer{text-align:center;color:var(--muted);font-size:12px;margin-top:22px}
 </style>
 </head>
@@ -111,7 +126,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;margin-top:22px}
   <!-- 題目畫面 -->
   <section class="screen" id="s-quiz">
     <div class="card">
-      <div class="meta"><span id="qNo">第 1 / 8 題</span><span id="qMood">😐 拖延指數計算中…</span></div>
+      <div class="meta"><span id="qNo">第 1 / 8 題</span><span id="qMood" class="pill">🔮 作答後會即時預測你的類型</span></div>
       <div class="progress"><i id="bar" style="width:0%"></i></div>
       <p class="q" id="qText"></p>
       <p class="qsub" id="qSub"></p>
@@ -149,6 +164,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;margin-top:22px}
       <div class="section">
         <h3>🔍 你的特徵</h3>
         <p id="rDesc" style="margin:0"></p>
+        <div class="second" id="rSecond"></div>
       </div>
       <div class="section">
         <h3>✨ 隱藏優點</h3>
@@ -160,6 +176,12 @@ footer{text-align:center;color:var(--muted);font-size:12px;margin-top:22px}
       </div>
       <div class="section">
         <div class="spell"><small>專屬咒語（拖延時默念）</small><span id="rSpell"></span></div>
+      </div>
+
+      <div class="section">
+        <h3>📚 五種拖延人格圖鑑 <span style="font-weight:500;font-size:13px;color:var(--muted)">（點一下看看朋友是哪型）</span></h3>
+        <div class="gallery" id="gallery"></div>
+        <div class="gdetail" id="gdetail"></div>
       </div>
 
       <div class="section timer">
@@ -310,7 +332,14 @@ function renderQ(){
   $("#qNo").textContent = `第 ${cur + 1} / ${QS.length} 題`;
   $("#bar").style.width = `${cur / QS.length * 100}%`;
   const answered = answers.filter(a => a != null).length;
-  $("#qMood").textContent = `${MOODS[Math.min(answered, MOODS.length - 1)]} 已作答 ${answered} 題`;
+  if (answered === 0) $("#qMood").textContent = "🔮 作答後會即時預測你的類型";
+  else {
+    const {pct} = scores();
+    const k = DIMS.map(d => d.k).sort((a, b) => pct[b] - pct[a])[0];
+    const el = $("#qMood");
+    el.innerHTML = `目前偏向：<b>${TYPES[k].emoji} ${TYPES[k].name}</b>`;
+    el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump");
+  }
   $("#qText").textContent = q.q;
   $("#qSub").textContent = q.sub;
   $("#qSub").style.display = q.sub ? "" : "none";
@@ -359,6 +388,11 @@ function finish(){
   $("#rTips").innerHTML = t.tips.map(x => `<li>${x}</li>`).join("");
   $("#rSpell").textContent = t.spell;
   $("#rTask").textContent = `今日任務：${t.task}`;
+  const sec = order[1], st = TYPES[sec];
+  $("#rSecond").innerHTML = pct[sec] > 0
+    ? `<span class="e">${st.emoji}</span><div><b>第二人格：${st.name}</b><br><span style="font-size:13px;color:var(--muted)">${DIMS.find(d => d.k === sec).name} ${Math.round(pct[sec]*100)}%，偶爾也會「${st.tag}」</span></div>`
+    : `<span class="e">🎯</span><div><b>你是純種的${t.name}</b><br><span style="font-size:13px;color:var(--muted)">其他維度幾乎沒有分數，拖延方式非常專一</span></div>`;
+  renderGallery(typeK, typeK);
   $("#rIndexBar").style.width = "0%";
   $("#rIndexV").textContent = "0";
   $("#rIndexText").textContent = idx >= 85 ? "重度拖延，但你還有救（你都測完了！）" : idx >= 70 ? "中度拖延，跟大部分大學生一樣" : "輕度拖延，偶爾拖一下很正常";
@@ -432,14 +466,38 @@ function renderHistory(){
   $("#historyList").innerHTML = h.map(r => `<li>${r.at}　${TYPES[r.typeK].emoji} ${TYPES[r.typeK].name}（拖延指數 ${r.idx}）</li>`).join("");
 }
 
+/* ---------- 人格圖鑑 ---------- */
+function renderGallery(mine, sel){
+  $("#gallery").innerHTML = DIMS.map(({k}) => `<button class="gcard ${k === sel ? "on" : ""}" data-k="${k}"><span class="me">${k === mine ? "你" : ""}</span><span class="e">${TYPES[k].emoji}</span><span class="n">${TYPES[k].name.replace("型", "")}</span></button>`).join("");
+  document.querySelectorAll(".gcard").forEach(b => b.onclick = () => renderGallery(mine, b.dataset.k));
+  const g = TYPES[sel];
+  $("#gdetail").innerHTML = `<b>${g.emoji} ${g.name}</b>　<span style="color:var(--muted)">「${g.tag}」</span><br>${g.desc}<br><span style="color:var(--accent);font-weight:700">咒語：${g.spell}</span>`;
+}
+
 /* ---------- 5 分鐘起步挑戰 ---------- */
 const TOTAL = 300, CIRC = 2 * Math.PI * 64;
 let left = TOTAL, tick = null;
+const BASE_TITLE = document.title;
+function beep(){
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, .18, .36].forEach((t, i) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.value = [660, 880, 1320][i]; o.connect(g); g.connect(ctx.destination);
+      g.gain.setValueAtTime(.0001, ctx.currentTime + t);
+      g.gain.exponentialRampToValueAtTime(.3, ctx.currentTime + t + .02);
+      g.gain.exponentialRampToValueAtTime(.0001, ctx.currentTime + t + .16);
+      o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + .18);
+    });
+  } catch {}
+  try { navigator.vibrate && navigator.vibrate([150, 80, 150]); } catch {}
+}
 function paintTimer(){
+  document.title = tick ? `⏱ ${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")} 專心中｜${BASE_TITLE}` : BASE_TITLE;
   $("#timerText").textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
   $("#ringArc").style.strokeDashoffset = CIRC * (1 - left / TOTAL);
 }
-function stopTimer(){ clearInterval(tick); tick = null; $("#timerBtn").textContent = left < TOTAL && left > 0 ? "繼續" : "現在就開始"; }
+function stopTimer(){ clearInterval(tick); tick = null; if (left > 0) document.title = BASE_TITLE; $("#timerBtn").textContent = left < TOTAL && left > 0 ? "繼續" : "現在就開始"; }
 function resetTimer(){ stopTimer(); left = TOTAL; paintTimer(); $("#timerBtn").textContent = "現在就開始"; $("#timerHint").textContent = "研究發現「開始」是最難的一步。只要 5 分鐘，做完就可以停。"; }
 $("#timerBtn").onclick = () => {
   if (tick){ stopTimer(); return; }
@@ -452,7 +510,7 @@ $("#timerBtn").onclick = () => {
       stopTimer();
       $("#timerBtn").textContent = "再來 5 分鐘";
       $("#timerHint").textContent = "🎉 完成！你剛剛打敗了拖延。想繼續的話，再來一輪吧。";
-      confetti("🎉");
+      confetti("🎉"); beep(); document.title = "🎉 完成！｜" + BASE_TITLE;
     }
   }, 1000);
 };
