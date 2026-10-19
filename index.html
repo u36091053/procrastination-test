@@ -62,8 +62,9 @@ h1 .hl{background:linear-gradient(transparent 60%,var(--accent-2) 60%);padding:0
 .index .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--good),var(--accent-2),var(--accent));transition:width 1.2s cubic-bezier(.2,.8,.2,1)}
 .section{margin-top:22px}
 .section h3{font-size:16px;margin:0 0 8px}
-.radar-wrap{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:center}
-@media (max-width:560px){.radar-wrap{grid-template-columns:1fr}}
+.radar-wrap{display:flex;flex-direction:column;gap:14px;align-items:stretch}
+.radar-wrap svg{display:block;width:100%;max-width:340px;height:auto;margin:0 auto;overflow:visible}
+.dims{width:100%;min-width:0}
 .dims{display:grid;gap:8px}
 .dim{font-size:14px}
 .dim .top{display:flex;justify-content:space-between}
@@ -140,7 +141,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;margin-top:22px}
       <div class="section">
         <h3>📊 五維度分析</h3>
         <div class="radar-wrap">
-          <svg id="radar" viewBox="0 0 300 280" role="img" aria-label="五個拖延維度的雷達圖"></svg>
+          <svg id="radar" width="340" height="300" viewBox="-20 0 340 300" role="img" aria-label="五個拖延維度的雷達圖"></svg>
           <div class="dims" id="dims"></div>
         </div>
       </div>
